@@ -65,7 +65,6 @@ int main(int argc, char *argv[]) {
     char msg[] = "GET %s HTTP/1.1\r\nHost: %s:%i\r\nConnection: close\r\n\r\n";
     char msg_buffer[0xFF];
     char buffer[0xFFF];
-    char root_buffer = malloc(0xFFFFF);
     char *ref_argv[] = {"", "google.com", "443"};
     char *req_file = "/";
 #ifdef _WIN32
@@ -166,6 +165,5 @@ int main(int argc, char *argv[]) {
     close(sockfd);
 #endif
     SSL_CTX_free(clientssl);
-    free(root_buffer);
     return 0;
 }
