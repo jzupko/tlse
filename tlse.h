@@ -34,6 +34,9 @@
 #ifndef NO_TLS_ECDSA_SUPPORTED
 #define TLS_ECDSA_SUPPORTED
 #endif
+#ifndef NO_TLS_CURVE25519
+#define TLS_CURVE25519
+#endif
 // suport ecdsa client-side
 #define TLS_CLIENT_ECDSA
 // TLS renegotiation is disabled by default (secured or not)
