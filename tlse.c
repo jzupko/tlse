@@ -1391,9 +1391,6 @@ struct TLSRTCPeerConnection {
 
 #ifdef SSL_COMPATIBLE_INTERFACE
 
-typedef int (*SOCKET_RECV_CALLBACK)(int socket, void *buffer, size_t length, int flags);
-typedef int (*SOCKET_SEND_CALLBACK)(int socket, const void *buffer, size_t length, int flags);
-
 #ifndef _WIN32
 #include <sys/socket.h>
 #endif
@@ -12135,7 +12132,7 @@ int SSL_pending(struct TLSContext *context) {
     return context->application_buffer_len;
 }
 
-int SSL_set_io(struct TLSContext *context, void *recv_cb, void *send_cb) {
+int SSL_set_io(struct TLSContext *context, SOCKET_RECV_CALLBACK recv_cb, SOCKET_SEND_CALLBACK send_cb) {
     if (!context)
         return TLS_GENERIC_ERROR;
     SSLUserData *ssl_data = (SSLUserData *)context->user_data;
