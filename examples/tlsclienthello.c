@@ -164,5 +164,6 @@ int main(int argc, char *argv[]) {
                 fwrite(read_buffer, read_size, 1, stdout);
         }
     }
+    fflush(stdout);
     return 0;
 }

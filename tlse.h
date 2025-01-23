@@ -414,11 +414,14 @@ int tls_remote_error(struct TLSContext *context);
     #define SSL_VERIFY_FAIL_IF_NO_PEER_CERT 2
     #define SSL_VERIFY_CLIENT_ONCE  3
 
+    typedef int (*SOCKET_RECV_CALLBACK)(int socket, void *buffer, size_t length, int flags);
+    typedef int (*SOCKET_SEND_CALLBACK)(int socket, const void *buffer, size_t length, int flags);
+
     typedef struct {
         int fd;
         tls_validation_function certificate_verify;
-        void *recv;
-        void *send;
+        SOCKET_RECV_CALLBACK recv;
+        SOCKET_SEND_CALLBACK send;
         void *user_data;
     } SSLUserData;
 
@@ -450,7 +453,7 @@ int tls_remote_error(struct TLSContext *context);
     int SSL_write(struct TLSContext *context, const void *buf, unsigned int len);
     int SSL_read(struct TLSContext *context, void *buf, unsigned int len);
     int SSL_pending(struct TLSContext *context);
-    int SSL_set_io(struct TLSContext *context, void *recv, void *send);
+    int SSL_set_io(struct TLSContext *context, SOCKET_RECV_CALLBACK recv, SOCKET_SEND_CALLBACK send);
 #endif
 
 #ifdef TLS_SRTP
