@@ -7165,7 +7165,7 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
     if (buf_len != res)
         return TLS_NEED_MORE_DATA;
     if ((context->is_server) && (cipher_buffer) && (cipher_len)) {
-        int cipher = tls_choose_cipher(context, cipher_buffer, cipher_len, &scsv_set);
+        cipher = tls_choose_cipher(context, cipher_buffer, cipher_len, &scsv_set);
         if (cipher < 0) {
             DEBUG_PRINT("NO COMMON CIPHERS\n");
             return cipher;
@@ -7286,19 +7286,19 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
                     int i;
                     char buffer_data[100];
                     char *buffer = buffer_data;
-                    int buf_len = sizeof(buffer_data);
+                    int buf_len_ = sizeof(buffer_data);
                     buffer[0] = 0;
                     for (i = 0; i < 32; i++) {
-                        if (buf_len <= 1)
+                        if (buf_len_ <= 1)
                             break;
                         if (i) {
-                            snprintf(buffer, buf_len, ":");
+                            snprintf(buffer, buf_len_, ":");
                             buffer ++;
-                            buf_len --;
+                            buf_len_ --;
                         }
-                        if (buf_len <= 2)
+                        if (buf_len_ <= 2)
                             break;
-                        snprintf(buffer, buf_len, "%02X", (unsigned int)hash[i]);
+                        snprintf(buffer, buf_len_, "%02X", (unsigned int)hash[i]);
                         buffer += 2;
                         buf_len -= 2;
                     }
@@ -7331,10 +7331,10 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
                 if (remaining >= 2) {
                     // ignore extensions
                     remaining -= 2;
-                    unsigned short size = ntohs(*(const unsigned short *)&buf[res2]);
-                    if ((size) && (size <= remaining)) {
-                        res2 += size;
-                        remaining -= size;
+                    unsigned short size_ = ntohs(*(const unsigned short *)&buf[res2]);
+                    if ((size_) && (size_ <= remaining)) {
+                        res2 += size_;
+                        remaining -= size_;
                     }
                     res2 += 2;
                 }
@@ -10903,9 +10903,9 @@ int tls_stun_parse(unsigned char *msg, int len, char *pwd, int pwd_len, unsigned
                 // PRIORITY
                 if (attr_len != 4)
                     return TLS_BROKEN_PACKET;
-                uint32_t priority;
-                memcpy(&priority, msg, sizeof(priority));
-                priority = ntohl(priority);
+                uint32_t priority_;
+                memcpy(&priority_, msg, sizeof(priority_));
+                priority = ntohl(priority_);
                 break;
         }
 
