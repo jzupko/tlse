@@ -3483,7 +3483,7 @@ int tls_certificate_is_valid(struct TLSCertificate *cert) {
     struct tm *utct = gmtime(&t);
     if (utct) {
         current_time[0] = 0;
-        snprintf(current_time, sizeof(current_time), "%04hu%02hhu%02hhu%02hhu%02hhu%02hhuZ", 1900 + utct->tm_year, utct->tm_mon + 1, utct->tm_mday, utct->tm_hour, utct->tm_min, utct->tm_sec);
+        snprintf(current_time, sizeof(current_time), "%04hu%02hhu%02hhu%02hhu%02hhu%02hhuZ", (unsigned short) (1900 + utct->tm_year), (unsigned char) (utct->tm_mon + 1), (unsigned char) utct->tm_mday, (unsigned char) utct->tm_hour, (unsigned char) utct->tm_min, (unsigned char) utct->tm_sec);
         if (strcasecmp((char *)cert->not_before, current_time) > 0) {
             DEBUG_PRINT("Certificate is not yer valid, now: %s (validity: %s - %s)\n", current_time, cert->not_before, cert->not_after);
             return certificate_expired;
