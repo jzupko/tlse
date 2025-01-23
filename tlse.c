@@ -11605,7 +11605,7 @@ int tls_peerconnection_iterate(struct TLSRTCPeerConnection *channel, unsigned ch
     if ((!channel) || (!buf) || (buf_len <= 0))
         return 0;
 
-    int err;
+    int err = 0;
     struct TLSContext *context = NULL;
     if (tls_is_stun(buf, buf_len)) {
         DEBUG_PRINT("RECEIVED STUN PACKET\n");
@@ -12112,7 +12112,7 @@ int SSL_read(struct TLSContext *context, void *buf, unsigned int len) {
     
     unsigned char client_message[0xFFFF];
     // accept
-    int read_size;
+    int read_size = 0;
     while ((!context->application_buffer_len) && ((read_size = _private_tls_safe_read(context, (char *)client_message, sizeof(client_message))) > 0)) {
         if (tls_consume_stream(context, client_message, read_size, ssl_data->certificate_verify) > 0)
             _tls_ssl_private_send_pending(ssl_data->fd, context);
