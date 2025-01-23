@@ -7220,7 +7220,7 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
     return res;
 }
 
-int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, int buf_len, int is_client) {
+int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, int buf_len, int is_server) {
     int res = 0;
     CHECK_SIZE(3, buf_len, TLS_NEED_MORE_DATA)
     unsigned int size_of_all_certificates = buf[0] * 0x10000 + buf[1] * 0x100 + buf[2];
@@ -7275,7 +7275,7 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
             }
             remaining -= certificate_size2;
             
-            struct TLSCertificate *cert = asn1_parse(context, &buf[res2], certificate_size2, is_client);
+            struct TLSCertificate *cert = asn1_parse(context, &buf[res2], certificate_size2, is_server);
             if (cert) {
                 if (certificate_size2) {
                     cert->bytes = (unsigned char *)TLS_MALLOC(certificate_size2);
@@ -7318,7 +7318,7 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
                     }
                 }
                 // valid certificate
-                if (is_client) {
+                if (is_server) {
                     valid_certificate = 1;
                     context->client_certificates = (struct TLSCertificate **)TLS_REALLOC(context->client_certificates, (context->client_certificates_count + 1) * sizeof(struct TLSCertificate *));
                     context->client_certificates[context->client_certificates_count] = cert;
