@@ -9378,7 +9378,6 @@ int _private_asn1_parse(struct TLSContext *context, struct TLSCertificate *cert,
                     // end of content
                     DEBUG_PRINT("END OF CONTENT\n");
                     return pos;
-                    break;
                 case 0x01:
                     // boolean
                     temp = buffer[pos];
