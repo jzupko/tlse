@@ -1536,16 +1536,26 @@ void tls_init() {
         return;
     DEBUG_PRINT("Initializing dependencies\n");
     dependecies_loaded = 1;
+#if (CRYPT <= 0x0117)
 #ifdef LTM_DESC
     ltc_mp = ltm_desc;
-#else
-#ifdef TFM_DESC
+#elif defined(TFM_DESC)
     ltc_mp = tfm_desc;
-#else
-#ifdef GMP_DESC
+#elif defined(GMP_DESC)
     ltc_mp = gmp_desc;
 #endif
+#else
+#ifdef LTM_DESC
+    if (crypt_mp_init("ltm") != CRYPT_OK)
+#elif defined(TFM_DESC)
+    if (crypt_mp_init("tfm") != CRYPT_OK)
+#elif defined(GMP_DESC)
+    if (crypt_mp_init("gmp") != CRYPT_OK)
 #endif
+    {
+        DEBUG_PRINT("crypt_mp_init failed\n");
+        return;
+    }
 #endif
     register_prng(&sprng_desc);
     register_hash(&sha224_desc);
