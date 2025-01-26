@@ -1,5 +1,12 @@
 /********************************************************************************
- Copyright (c) 2016-2024, Eduard Suica
+ This software is available under your choice of one of the following licenses.
+ Choose whichever you prefer.
+
+ ===============================================================================
+ License Choice 1 - The 2-Clause BSD License
+ ===============================================================================
+
+ Copyright (c) 2016-2025, Eduard Suica
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification,
@@ -22,6 +29,35 @@
  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  POSSIBILITY OF SUCH DAMAGE.
+
+ ===============================================================================
+ License Choice 2 - Public Domain (Unlicense)
+ ===============================================================================
+
+ This is free and unencumbered software released into the public domain.
+
+ Anyone is free to copy, modify, publish, use, compile, sell, or
+ distribute this software, either in source code form or as a compiled
+ binary, for any purpose, commercial or non-commercial, and by any
+ means.
+
+ In jurisdictions that recognize copyright laws, the author or authors
+ of this software dedicate any and all copyright interest in the
+ software to the public domain. We make this dedication for the benefit
+ of the public at large and to the detriment of our heirs and
+ successors. We intend this dedication to be an overt act of
+ relinquishment in perpetuity of all present and future rights to this
+ software under copyright law.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+
+ For more information, please refer to <http://unlicense.org/>
  ********************************************************************************/
 #ifndef TLSE_C
 #define TLSE_C
@@ -80,10 +116,6 @@
 #endif
 
 #include "tlse.h"
-#ifdef TLS_CURVE25519
-    #include "curve25519.c"
-#endif
-// using ChaCha20 implementation by D. J. Bernstein
 
 #ifndef TLS_FORWARD_SECRECY
 #undef TLS_ECDSA_SUPPORTED
@@ -5588,12 +5620,11 @@ struct TLSPacket *tls_build_client_key_exchange(struct TLSContext *context) {
 #ifdef TLS_CURVE25519
         else
         if ((context->curve == &x25519) && (context->client_secret)) {
-            static const unsigned char basepoint[32] = {9};
-            unsigned char shared_key[32];
-            curve25519(shared_key, context->client_secret, basepoint);
+            curve25519_key key;
+            x25519_import_raw(context->client_secret, 32, PK_PRIVATE, &key);
             tls_packet_uint24(packet, 32 + 1);
             tls_packet_uint8(packet, 32);
-            tls_packet_append(packet, shared_key, 32);
+            tls_packet_append(packet, key.pub, 32);
             TLS_FREE(context->client_secret);
             context->client_secret = NULL;
         }
@@ -6332,19 +6363,18 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
 
                     }
 
-                    static const unsigned char basepoint[32] = {9};
-
                     tls_random(context->client_secret, 32);
 
                     context->client_secret[0] &= 248;
                     context->client_secret[31] &= 127;
                     context->client_secret[31] |= 64;
 
-                    curve25519(shared_key, context->client_secret, basepoint);
+                    curve25519_key key;
+                    x25519_import_raw(context->client_secret, 32, PK_PRIVATE, &key);
 
                     tls_packet_uint16(packet, (unsigned short)x25519.iana);
                     tls_packet_uint16(packet, shared_key_short);
-                    tls_packet_append(packet, (unsigned char *)shared_key, shared_key_short);
+                    tls_packet_append(packet, key.pub, shared_key_short);
 #else
                     // make key
                     shared_key_short = 65;
@@ -6686,8 +6716,9 @@ int _private_tls_parse_key_share(struct TLSContext *context, const unsigned char
                 DEBUG_PRINT("KEY SHARE => x25519\n");
                 buf_len = 0;
                 continue;
-#endif
+#else
                 break;
+#endif
 
             case 0x001E:
                 // x448
@@ -6727,7 +6758,6 @@ int _private_tls_parse_key_share(struct TLSContext *context, const unsigned char
             if ((context->is_server) && (!tls_random(context->local_random, TLS_SERVER_RANDOM_SIZE)))
                 return TLS_GENERIC_ERROR;
             unsigned char secret[32];
-            static const unsigned char basepoint[32] = {9};
 
             if ((context->is_server) || (!context->client_secret)) {
                 tls_random(secret, 32);
@@ -6742,23 +6772,32 @@ int _private_tls_parse_key_share(struct TLSContext *context, const unsigned char
                 if (!context->finished_key)
                     return TLS_GENERIC_ERROR;
 
-                curve25519(context->finished_key, secret, basepoint);
+                curve25519_key secret_key;
+                x25519_import_raw(secret, 32, PK_PRIVATE, &secret_key);
+                memcpy(context->finished_key, secret_key.pub, 32);
 
                 TLS_FREE(context->premaster_key);
                 context->premaster_key = (unsigned char *)TLS_MALLOC(32);
                 if (!context->premaster_key)
                     return TLS_GENERIC_ERROR;
 
-                curve25519(context->premaster_key, secret, buffer);
+                curve25519_key public_key;
+                x25519_import_raw(buffer, 32, PK_PUBLIC, &public_key);
                 context->premaster_key_len = 32;
+                x25519_shared_secret(&secret_key, &public_key, context->premaster_key, (unsigned long *) &context->premaster_key_len);
             } else {
                 TLS_FREE(context->premaster_key);
                 context->premaster_key = (unsigned char *)TLS_MALLOC(32);
                 if (!context->premaster_key)
                     return TLS_GENERIC_ERROR;
 
-                curve25519(context->premaster_key, context->client_secret, buffer);
+                curve25519_key secret_key;
+                x25519_import_raw(context->client_secret, 32, PK_PRIVATE, &secret_key);
+
+                curve25519_key public_key;
+                x25519_import_raw(buffer, 32, PK_PUBLIC, &public_key);
                 context->premaster_key_len = 32;
+                x25519_shared_secret(&secret_key, &public_key, context->premaster_key, (unsigned long *) &context->premaster_key_len);
 
                 TLS_FREE(context->client_secret);
                 context->client_secret = NULL;
@@ -7688,8 +7727,13 @@ int tls_parse_server_key_exchange(struct TLSContext *context, const unsigned cha
             if (!context->premaster_key)
                 return TLS_GENERIC_ERROR;
 
-            curve25519(context->premaster_key, context->client_secret, pk_key);
+            curve25519_key secret_key;
+            x25519_import_raw(context->client_secret, 32, PK_PRIVATE, &secret_key);
+
+            curve25519_key public_key;
+            x25519_import_raw(pk_key, 32, PK_PUBLIC, &public_key);
             context->premaster_key_len = 32;
+            x25519_shared_secret(&secret_key, &public_key, context->premaster_key, (unsigned long *) &context->premaster_key_len);
         } else
 #endif
         {
