@@ -4295,7 +4295,9 @@ int tls_packet_append(struct TLSPacket *packet, const unsigned char *buf, unsign
             return -1;
         }
     }
-    memcpy(packet->buf + packet->len, buf, len);
+    if (buf) {
+        memcpy(packet->buf + packet->len, buf, len);
+    }
     packet->len = new_len;
     return new_len;
 }
@@ -5668,14 +5670,12 @@ struct TLSPacket *tls_build_server_key_exchange(struct TLSContext *context, int 
     }
     int packet_offset = packet->len;
     tls_packet_uint8(packet, 0x0C);
-    unsigned char dummy[3];
-    tls_packet_append(packet, dummy, 3);
+    tls_packet_append(packet, NULL, 3);
     if (context->dtls)
         _private_dtls_handshake_data(context, packet, 0);
     int start_len = packet->len;
 #ifdef TLS_FORWARD_SECRECY
     if (method == KEA_dhe_rsa) {
-
         if (!context->dhe) {
             tls_init();
             _private_tls_dhe_create(context);
@@ -5902,8 +5902,7 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
             tls_packet_uint8(packet, 0x02);
         else
             tls_packet_uint8(packet, 0x01);
-        unsigned char dummy[3];
-        tls_packet_append(packet, dummy, 3);
+        tls_packet_append(packet, NULL, 3);
 
         if (context->dtls)
             _private_dtls_handshake_data(context, packet, 0);
@@ -6450,8 +6449,7 @@ struct TLSPacket *tls_certificate_request(struct TLSContext *context) {
     if (packet) {
         // certificate request
         tls_packet_uint8(packet, 0x0D);
-        unsigned char dummy[3];
-        tls_packet_append(packet, dummy, 3);
+        tls_packet_append(packet, NULL, 3);
         if (context->dtls)
             _private_dtls_handshake_data(context, packet, 0);
         int start_len = packet->len;
