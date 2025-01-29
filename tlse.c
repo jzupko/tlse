@@ -6608,7 +6608,7 @@ int _private_dtls_check_packet(struct TLSContext *context, const unsigned char *
     unsigned int fragment_length = buf[8] * 0x10000 + buf[9] * 0x100 + buf[10];
 
     if ((fragment_offset) || (fragment_length != bytes_to_follow)) {
-        if ((context->dtls_data->fragment) && (context->dtls_data->fragment->written == bytes_to_follow))
+        if ((context->dtls_data->fragment) && ((unsigned int) context->dtls_data->fragment->written == bytes_to_follow))
             return bytes_to_follow;
 
         return TLS_FEATURE_NOT_SUPPORTED;
@@ -7214,10 +7214,10 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
     if (buf_len != res)
         return TLS_NEED_MORE_DATA;
     if ((context->is_server) && (cipher_buffer) && (cipher_len)) {
-        cipher = tls_choose_cipher(context, cipher_buffer, cipher_len, &scsv_set);
-        if (cipher < 0) {
+        int ret_cipher = tls_choose_cipher(context, cipher_buffer, cipher_len, &scsv_set);
+        if (ret_cipher < 0) {
             DEBUG_PRINT("NO COMMON CIPHERS\n");
-            return cipher;
+            return ret_cipher;
         }
         if ((downgraded) && (scsv_set)) {
             DEBUG_PRINT("NO DOWNGRADE (SCSV SET)\n");
@@ -7225,7 +7225,7 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
             context->critical_error = 1;
             return TLS_NOT_SAFE;
         }
-        context->cipher = cipher;
+        context->cipher = (unsigned short) ret_cipher;
     }
 #ifdef WITH_TLS_13
     if (!context->is_server) {
@@ -8074,7 +8074,7 @@ void _private_dtls_reset_handshake(struct TLSContext *context) {
 
         if (context->is_server) {
             if (context->client_certificates) {
-                int i;
+                unsigned int i;
                 for (i = 0; i < context->client_certificates_count; i++)
                     tls_destroy_certificate(context->client_certificates[i]);
                 TLS_FREE(context->client_certificates);
@@ -10220,9 +10220,9 @@ int tls_consume_stream(struct TLSContext *context, const unsigned char *buf, int
     unsigned int index = 0;
     unsigned int tls_buffer_len = context->message_buffer_len;
     int err_flag = 0;
-    
-    int tls_header_size;
-    int tls_size_offset;
+
+    unsigned int tls_header_size;
+    unsigned int tls_size_offset;
 
     if (context->dtls) {
         tls_size_offset = 11;
