@@ -6282,7 +6282,10 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                 tls_packet_uint16(packet, secp256r1.iana);
                 tls_packet_uint16(packet, secp384r1.iana);
 #ifdef TLS_CURVE25519
-                tls_packet_uint16(packet, x25519.iana);
+                if (context->version == TLS_V13)
+                    tls_packet_uint16(packet, x25519.iana);
+                else
+                    tls_packet_uint16(packet, secp224r1.iana);
 #else
                 tls_packet_uint16(packet, secp224r1.iana);
 #endif
