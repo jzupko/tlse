@@ -289,25 +289,25 @@ static inline int poly1305_generate_key(unsigned char *key256, unsigned char *no
 //========== ChaCha20 from D. J. Bernstein ========= //
 // Source available at https://cr.yp.to/chacha.html  //
 
-typedef unsigned char u8;
-typedef unsigned int u32;
+typedef unsigned char djb_u8;
+typedef unsigned int djb_u32;
 
 typedef struct chacha_ctx chacha_ctx;
 
 #define U8C(v) (v##U)
 #define U32C(v) (v##U)
 
-#define U8V(v) ((u8)(v) & U8C(0xFF))
-#define U32V(v) ((u32)(v) & U32C(0xFFFFFFFF))
+#define U8V(v) ((djb_u8)(v) & U8C(0xFF))
+#define U32V(v) ((djb_u32)(v) & U32C(0xFFFFFFFF))
 
 #define ROTL32(v, n) \
   (U32V((v) << (n)) | ((v) >> (32 - (n))))
 
 #define _private_tls_U8TO32_LITTLE(p) \
-  (((u32)((p)[0])) | \
-   ((u32)((p)[1]) <<  8) | \
-   ((u32)((p)[2]) << 16) | \
-   ((u32)((p)[3]) << 24))
+  (((djb_u32)((p)[0])) | \
+   ((djb_u32)((p)[1]) <<  8) | \
+   ((djb_u32)((p)[2]) << 16) | \
+   ((djb_u32)((p)[3]) << 24))
 
 #define _private_tls_U32TO8_LITTLE(p, v) \
   do { \
@@ -331,7 +331,7 @@ typedef struct chacha_ctx chacha_ctx;
 static const char sigma[] = "expand 32-byte k";
 static const char tau[] = "expand 16-byte k";
 
-static inline void chacha_keysetup(chacha_ctx *x, const u8 *k, u32 kbits) {
+static inline void chacha_keysetup(chacha_ctx *x, const djb_u8 *k, djb_u32 kbits) {
     const char *constants;
 
     x->input[4] = _private_tls_U8TO32_LITTLE(k + 0);
@@ -354,7 +354,7 @@ static inline void chacha_keysetup(chacha_ctx *x, const u8 *k, u32 kbits) {
     x->input[3] = _private_tls_U8TO32_LITTLE(constants + 12);
 }
 
-static inline void chacha_key(chacha_ctx *x, u8 *k) {
+static inline void chacha_key(chacha_ctx *x, djb_u8 *k) {
     _private_tls_U32TO8_LITTLE(k, x->input[4]);
     _private_tls_U32TO8_LITTLE(k + 4, x->input[5]);
     _private_tls_U32TO8_LITTLE(k + 8, x->input[6]);
@@ -366,13 +366,13 @@ static inline void chacha_key(chacha_ctx *x, u8 *k) {
     _private_tls_U32TO8_LITTLE(k + 28, x->input[11]);
 }
 
-static inline void chacha_nonce(chacha_ctx *x, u8 *nonce) {
+static inline void chacha_nonce(chacha_ctx *x, djb_u8 *nonce) {
     _private_tls_U32TO8_LITTLE(nonce + 0, x->input[13]);
     _private_tls_U32TO8_LITTLE(nonce + 4, x->input[14]);
     _private_tls_U32TO8_LITTLE(nonce + 8, x->input[15]);
 }
 
-static inline void chacha_ivsetup(chacha_ctx *x, const u8 *iv, const u8 *counter) {
+static inline void chacha_ivsetup(chacha_ctx *x, const djb_u8 *iv, const djb_u8 *counter) {
     x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 0);
     x->input[13] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 4);
     if (iv) {
@@ -381,7 +381,7 @@ static inline void chacha_ivsetup(chacha_ctx *x, const u8 *iv, const u8 *counter
     }
 }
 
-static inline void chacha_ivsetup_96bitnonce(chacha_ctx *x, const u8 *iv, const u8 *counter) {
+static inline void chacha_ivsetup_96bitnonce(chacha_ctx *x, const djb_u8 *iv, const djb_u8 *counter) {
     x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 0);
     if (iv) {
         x->input[13] = _private_tls_U8TO32_LITTLE(iv + 0);
@@ -390,20 +390,20 @@ static inline void chacha_ivsetup_96bitnonce(chacha_ctx *x, const u8 *iv, const 
     }
 }
 
-static inline void chacha_ivupdate(chacha_ctx *x, const u8 *iv, const u8 *aad, const u8 *counter) {
+static inline void chacha_ivupdate(chacha_ctx *x, const djb_u8 *iv, const djb_u8 *aad, const djb_u8 *counter) {
     x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 0);
     x->input[13] = _private_tls_U8TO32_LITTLE(iv + 0);
     x->input[14] = _private_tls_U8TO32_LITTLE(iv + 4) ^ _private_tls_U8TO32_LITTLE(aad);
     x->input[15] = _private_tls_U8TO32_LITTLE(iv + 8) ^ _private_tls_U8TO32_LITTLE(aad + 4);
 }
 
-static inline void chacha_encrypt_bytes(chacha_ctx *x, const u8 *m, u8 *c, u32 bytes) {
-    u32 x0, x1, x2, x3, x4, x5, x6, x7;
-    u32 x8, x9, x10, x11, x12, x13, x14, x15;
-    u32 j0, j1, j2, j3, j4, j5, j6, j7;
-    u32 j8, j9, j10, j11, j12, j13, j14, j15;
-    u8 *ctarget = NULL;
-    u8 tmp[64];
+static inline void chacha_encrypt_bytes(chacha_ctx *x, const djb_u8 *m, djb_u8 *c, djb_u32 bytes) {
+    djb_u32 x0, x1, x2, x3, x4, x5, x6, x7;
+    djb_u32 x8, x9, x10, x11, x12, x13, x14, x15;
+    djb_u32 j0, j1, j2, j3, j4, j5, j6, j7;
+    djb_u32 j8, j9, j10, j11, j12, j13, j14, j15;
+    djb_u8 *ctarget = NULL;
+    djb_u8 tmp[64];
     u_int i;
 
     if (!bytes)
@@ -5562,8 +5562,10 @@ int tls_is_ecdsa(struct TLSContext *context) {
             return 1;
     }
 #ifdef WITH_TLS_13
+ #ifdef TLS_ECDSA_SUPPORTED
     if (context->ec_private_key)
         return 1;
+ #endif
 #endif
     return 0;
 }
@@ -8029,8 +8031,10 @@ int tls_parse_verify(struct TLSContext *context, const unsigned char *buf, int b
         
         if (algorithm == rsa_pkcs1)
             res = _private_tls_verify_rsa(context, hash, &buf[7], size, context->cached_handshake, context->cached_handshake_len);
+#ifdef TLS_ECDSA_SUPPORTED
         else
             res = _private_tls_verify_ecdsa(context, hash, &buf[7], size, context->cached_handshake, context->cached_handshake_len, NULL);
+#endif
     } else {
 #ifdef TLS_LEGACY_SUPPORT
         unsigned short size = ntohs(*(const unsigned short *)&buf[3]);
@@ -9808,9 +9812,7 @@ struct TLSPacket *tls_build_certificate_verify(struct TLSContext *context) {
     tls_packet_uint24(packet, 0);
 
     unsigned char out[TLS_MAX_RSA_KEY];
-#ifdef TLS_ECDSA_SUPPORTED
     unsigned long out_len = TLS_MAX_RSA_KEY;
-#endif
 
     unsigned char signing_data[TLS_MAX_HASH_SIZE + 98];
     int signing_data_len;
