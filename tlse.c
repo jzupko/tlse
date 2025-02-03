@@ -2204,6 +2204,11 @@ static int _private_tls_is_point(ecc_key *key) {
     if ((err = mp_init_multi(&prime, &b, &t1, &t2, NULL)) != CRYPT_OK) {
         return err;
     }
+
+    if (!(const char *)TLS_TOMCRYPT_PRIVATE_DP(key)->prime) {
+        err = -1;
+        goto error;
+    }
     
     /* load prime and b */
     if ((err = mp_read_radix(prime, (const char *)TLS_TOMCRYPT_PRIVATE_DP(key)->prime, 16)) != CRYPT_OK) {
