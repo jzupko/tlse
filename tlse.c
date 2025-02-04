@@ -9312,6 +9312,11 @@ int tls_certificate_chain_is_valid(struct TLSCertificate **certificates, int len
         // certificate in chain is expired ?
         if (tls_certificate_is_valid(certificates[i+1]))
             return bad_certificate;
+
+        // validate unsupported certificates (needs rewrite)
+        if ((!certificates[i + 1]) || (!(certificates[i + 1]->fingerprint)))
+            break;
+
         if (!tls_certificate_verify_signature(certificates[i], certificates[i+1]))
             return bad_certificate;
     }
