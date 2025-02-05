@@ -4215,7 +4215,7 @@ void tls_packet_update(struct TLSPacket *packet) {
                             if (packet->context->crypto.created == 3) {
                                 unsigned int counter = 1;
                                 unsigned char poly1305_key[POLY1305_KEYLEN];
-                                chacha_ivupdate(&packet->context->crypto.ctx_local.chacha_local, packet->context->crypto.ctx_local_mac.local_aead_iv, sequence, (u8 *)&counter);
+                                chacha_ivupdate(&packet->context->crypto.ctx_local.chacha_local, packet->context->crypto.ctx_local_mac.local_aead_iv, sequence, (djb_u8 *)&counter);
                                 chacha20_poly1305_key(&packet->context->crypto.ctx_local.chacha_local, poly1305_key);
                                 ct_pos += chacha20_poly1305_aead(&packet->context->crypto.ctx_local.chacha_local, packet->buf + header_size, pt_length, aad, aad_size, poly1305_key, ct + ct_pos);
                             } else {
