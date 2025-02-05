@@ -1651,7 +1651,7 @@ unsigned char *_private_tls_decrypt_dhe(struct TLSContext *context, const unsign
         DEBUG_PRINT("ERROR CREATING Yc\n");
         return NULL;
     }
-    if (mp_read_unsigned_bin(Yc, (const unsigned char *)buffer, len)) {
+    if (mp_read_unsigned_bin(Yc, (unsigned char *)buffer, len)) {
         DEBUG_PRINT("ERROR LOADING DHE Yc\n");
         mp_clear(Yc);
         return NULL;
@@ -2299,17 +2299,17 @@ int _private_tls_ecc_import_key(const unsigned char *private_key, int private_le
         public_key++;
         public_len--;
     }
-    if ((err = mp_read_unsigned_bin(key->pubkey.x, (const unsigned char *)public_key + 1, (public_len - 1) >> 1)) != CRYPT_OK) {
+    if ((err = mp_read_unsigned_bin(key->pubkey.x, (unsigned char *)public_key + 1, (public_len - 1) >> 1)) != CRYPT_OK) {
         mp_clear_multi(key->pubkey.x, key->pubkey.y, key->pubkey.z, key->k, NULL);
         return err;
     }
 
-    if ((err = mp_read_unsigned_bin(key->pubkey.y, (const unsigned char *)public_key + 1 + ((public_len - 1) >> 1), (public_len - 1) >> 1)) != CRYPT_OK) {
+    if ((err = mp_read_unsigned_bin(key->pubkey.y, (unsigned char *)public_key + 1 + ((public_len - 1) >> 1), (public_len - 1) >> 1)) != CRYPT_OK) {
         mp_clear_multi(key->pubkey.x, key->pubkey.y, key->pubkey.z, key->k, NULL);
         return err;
     }
 
-    if ((err = mp_read_unsigned_bin(key->k, (const unsigned char *)private_key, private_len)) != CRYPT_OK) {
+    if ((err = mp_read_unsigned_bin(key->k, (unsigned char *)private_key, private_len)) != CRYPT_OK) {
         mp_clear_multi(key->pubkey.x, key->pubkey.y, key->pubkey.z, key->k, NULL);
         return err;
     }
@@ -2498,12 +2498,12 @@ int _private_tls_ecc_import_pk(const unsigned char *public_key, int public_len, 
         public_key++;
         public_len--;
     }
-    if ((err = mp_read_unsigned_bin(key->pubkey.x, (const unsigned char *)public_key + 1, (public_len - 1) >> 1)) != CRYPT_OK) {
+    if ((err = mp_read_unsigned_bin(key->pubkey.x, (unsigned char *)public_key + 1, (public_len - 1) >> 1)) != CRYPT_OK) {
         mp_clear_multi(key->pubkey.x, key->pubkey.y, key->pubkey.z, key->k, NULL);
         return err;
     }
 
-    if ((err = mp_read_unsigned_bin(key->pubkey.y, (const unsigned char *)public_key + 1 + ((public_len - 1) >> 1), (public_len - 1) >> 1)) != CRYPT_OK) {
+    if ((err = mp_read_unsigned_bin(key->pubkey.y, (unsigned char *)public_key + 1 + ((public_len - 1) >> 1), (public_len - 1) >> 1)) != CRYPT_OK) {
         mp_clear_multi(key->pubkey.x, key->pubkey.y, key->pubkey.z, key->k, NULL);
         return err;
     }
@@ -5513,7 +5513,7 @@ int _private_tls_dh_make_key(int keysize, DHKey *key, const char *pbuf, const ch
             return TLS_GENERIC_ERROR;
         }
     } else {
-        if ((err = mp_read_unsigned_bin(key->g, (const unsigned char *)gbuf, gbuf_len)) != CRYPT_OK) {
+        if ((err = mp_read_unsigned_bin(key->g, (unsigned char *)gbuf, gbuf_len)) != CRYPT_OK) {
             TLS_FREE(buf);
             _private_tls_dh_clear_key(key);
             return TLS_GENERIC_ERROR;
@@ -5527,7 +5527,7 @@ int _private_tls_dh_make_key(int keysize, DHKey *key, const char *pbuf, const ch
             return TLS_GENERIC_ERROR;
         }
     } else {
-        if ((err = mp_read_unsigned_bin(key->p, (const unsigned char *)pbuf, pbuf_len)) != CRYPT_OK) {
+        if ((err = mp_read_unsigned_bin(key->p, (unsigned char *)pbuf, pbuf_len)) != CRYPT_OK) {
             TLS_FREE(buf);
             _private_tls_dh_clear_key(key);
             return TLS_GENERIC_ERROR;
