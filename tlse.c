@@ -9341,6 +9341,70 @@ int tls_certificate_chain_is_valid_root(struct TLSContext *context, struct TLSCe
     return bad_certificate;
 }
 
+#ifdef TLS_FULL_X509
+
+#include "x509.c"
+
+#define X509_COPY_BYTES(to, from_start, from_len, buffer, size) if ((from_start >= 0) && (from_len > 0) && (from_len < size)) tls_certificate_set_copy(&to, &buffer[from_start], from_len);
+
+struct TLSCertificate *asn1_parse(struct TLSContext *context, const unsigned char *buffer, unsigned int size, int client_cert) {
+    cert_parsing_ctx cert_ctx;
+    memset(&cert_ctx, 0, sizeof(cert_ctx));
+
+    struct TLSCertificate *cert = NULL;
+    x509_u32 eaten = 0;
+    if (!parse_x509_cert_relaxed(&cert_ctx, buffer, size, &eaten)) {
+        cert = tls_create_certificate();
+        if (cert) {
+            cert->version = cert_ctx.version;
+            cert->algorithm;
+            cert->key_algorithm;
+            cert->ec_algorithm;
+            cert->exponent;
+            cert->exponent_len;
+            cert->pk;
+            cert->pk_len;
+            cert->priv;
+            cert->priv_len;
+            cert->issuer_country;
+            cert->issuer_state;
+            cert->issuer_location;
+            X509_COPY_BYTES(cert->issuer_entity, cert_ctx.issuer_start, cert_ctx.issuer_len, buffer, eaten);
+            cert->issuer_subject;
+            cert->not_before;
+            cert->not_after;
+            cert->country;
+            cert->state;
+            cert->location;
+            cert->entity;
+            X509_COPY_BYTES(cert->subject, cert_ctx.subject_start, cert_ctx.subject_len, buffer, eaten);
+            cert->san;
+            cert->san_length;
+            cert->ocsp;
+            X509_COPY_BYTES(cert->serial_number, cert_ctx.serial_start, cert_ctx.serial_len, buffer, eaten);
+            if ((cert->serial_number) && (cert_ctx.serial_len))
+                cert->serial_len = cert_ctx.serial_len;
+            X509_COPY_BYTES(cert->sign_key, cert_ctx.sig_start, cert_ctx.sig_len, buffer, eaten);
+            if ((cert->sign_key) && (cert_ctx.sig_len))
+                cert->sign_len = cert_ctx.sig_len;
+            cert->fingerprint;
+            cert->der_bytes;
+            cert->der_len;
+
+            if (eaten) {
+                cert->bytes = (unsigned char *)TLS_MALLOC(eaten);
+                if (cert->bytes) {
+                    cert->len = eaten;
+                    memcpy(cert->bytes, buffer, eaten);
+                }
+            }
+        }
+    }
+    return cert;
+}
+
+#else
+
 int _private_is_oid(struct _private_OID_chain *ref_chain, const unsigned char *looked_oid, int looked_oid_len) {
     while (ref_chain) {
         if (ref_chain->oid) {
@@ -9695,6 +9759,7 @@ struct TLSCertificate *asn1_parse(struct TLSContext *context, const unsigned cha
     }
     return cert;
 }
+#endif
 
 int tls_load_certificates(struct TLSContext *context, const unsigned char *pem_buffer, int pem_size) {
     if (!context)
