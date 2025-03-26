@@ -9210,7 +9210,11 @@ unsigned char *_private_tls_compute_hash(int algorithm, const unsigned char *mes
 int tls_certificate_verify_signature(struct TLSCertificate *cert, struct TLSCertificate *parent) {
     if ((!cert) || (!parent) || (!cert->sign_key) || (!cert->fingerprint) || (!cert->sign_len) || (!parent->der_bytes) || (!parent->der_len)) {
         DEBUG_PRINT("CANNOT VERIFY SIGNATURE\n");
+#ifdef TLS_UNSECURE_ALLOW_UNSUPPORTED_CERTIFICATES
+        return 1;
+#else
         return 0;
+#endif
     }
     tls_init();
     int hash_len = _private_tls_hash_len(cert->algorithm);
