@@ -10020,50 +10020,39 @@ struct TLSPacket *tls_build_certificate(struct TLSContext *context) {
     }
     struct TLSPacket *packet = tls_create_packet(context, TLS_HANDSHAKE, context->version, 0);
     tls_packet_uint8(packet, 0x0B);
-    if (all_certificate_size) {
 #ifdef WITH_TLS_13
-        // context
-        if ((context->version == TLS_V13) || (context->version == DTLS_V13)) {
-            tls_packet_uint24(packet, all_certificate_size + 4);
-            tls_packet_uint8(packet, 0);
-        } else
+    // context
+    if ((context->version == TLS_V13) || (context->version == DTLS_V13)) {
+        tls_packet_uint24(packet, all_certificate_size + 4);
+        tls_packet_uint8(packet, 0);
+    } else
 #endif
-            tls_packet_uint24(packet, all_certificate_size + 3);
+        tls_packet_uint24(packet, all_certificate_size + 3);
 
-        if (context->dtls)
-            _private_dtls_handshake_data(context, packet, all_certificate_size + 3);
+    if (context->dtls)
+        _private_dtls_handshake_data(context, packet, all_certificate_size + 3);
 
-        tls_packet_uint24(packet, all_certificate_size);
-        for (i = 0; i < certificates_count; i++) {
-            struct TLSCertificate *cert = certificates[i];
-            if ((cert) && (cert->der_len)) {
+    tls_packet_uint24(packet, all_certificate_size);
+    for (i = 0; i < certificates_count; i++) {
+        struct TLSCertificate *cert = certificates[i];
+        if ((cert) && (cert->der_len)) {
 #ifdef TLS_ECDSA_SUPPORTED
-                // is RSA certificate ?
-                if ((is_ecdsa) && (!cert->ec_algorithm))
-                    continue;
-                // is ECC certificate ?
-                if ((!is_ecdsa) && (cert->ec_algorithm))
-                    continue;
+            // is RSA certificate ?
+            if ((is_ecdsa) && (!cert->ec_algorithm))
+                continue;
+            // is ECC certificate ?
+            if ((!is_ecdsa) && (cert->ec_algorithm))
+                continue;
 #endif
-                // 2 times -> one certificate
-                tls_packet_uint24(packet, cert->der_len);
-                tls_packet_append(packet, cert->der_bytes, cert->der_len);
+            // 2 times -> one certificate
+            tls_packet_uint24(packet, cert->der_len);
+            tls_packet_append(packet, cert->der_bytes, cert->der_len);
 #ifdef WITH_TLS_13
-                // extension
-                if ((context->version == TLS_V13) || (context->version == DTLS_V13))
-                    tls_packet_uint16(packet, 0);
+            // extension
+            if ((context->version == TLS_V13) || (context->version == DTLS_V13))
+                tls_packet_uint16(packet, 0);
 #endif
-            }
         }
-    } else {
-        tls_packet_uint24(packet, all_certificate_size);
-#ifdef WITH_TLS_13
-        if ((context->version == TLS_V13) || (context->version == DTLS_V13))
-            tls_packet_uint8(packet, 0);
-#endif
-
-        if (context->dtls)
-            _private_dtls_handshake_data(context, packet, all_certificate_size);
     }
     tls_packet_update(packet);
     if (context->dtls)
