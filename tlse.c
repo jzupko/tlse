@@ -927,10 +927,11 @@ typedef enum {
     anonymous = 0,
     rsa_pkcs1 = 1,
     ecdsa = 3,
-    rsa_pss = 8
+    // rsa_pss seems broken
+    // rsa_pss = 8
 } TLSSignatureAlgorithm;
 
-#define TLS_SIGN_ALGO_NUMBER (3)  // rsa_pkcs1, rsa_pss_rsae, ecdsa
+#define TLS_SIGN_ALGO_NUMBER (2)  // rsa_pkcs1, rsa_pss_rsae, ecdsa
 
 struct _private_OID_chain {
     void *top;
@@ -2616,17 +2617,6 @@ int _private_tls_verify_ecdsa(struct TLSContext *context, unsigned int hash_type
             }
             hash_len = 64;
             break;
-        // case _intrinsic:
-        //     {
-        //         // no hash
-        //         int ecc_stat = 0;
-        //         err = ecc_verify(buffer, len, message, message_len, &ecc_stat, &key);
-        //         ecc_free(&key);
-        //         if (err)
-        //             return 0;
-        //         return ecc_stat;
-        //     }
-        //     break;
 #ifdef TLS_LEGACY_SUPPORT
         case _md5_sha1:
             hash_idx = find_hash("md5");
@@ -6443,7 +6433,7 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                 for (TLSHashAlgorithm hash = sha256; !(hash > sha512); hash = (TLSHashAlgorithm) ((int) hash + 1)) {
                     tls_packet_uint16(packet, ((uint16_t) (hash) << 8) | ecdsa);
                     tls_packet_uint16(packet, ((uint16_t) (hash) << 8) | rsa_pkcs1);
-                    tls_packet_uint16(packet, (rsa_pss << 8) | (uint16_t) (hash));
+                    // tls_packet_uint16(packet, (rsa_pss << 8) | (uint16_t) (hash));
                 }
             }
         }
