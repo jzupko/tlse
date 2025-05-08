@@ -917,6 +917,7 @@ typedef enum {
     sha256 = 4,
     sha384 = 5,
     sha512 = 6,
+    _intrinsic = 8,
     _md5_sha1 = 255
 } TLSHashAlgorithm;
 
