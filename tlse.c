@@ -2616,6 +2616,17 @@ int _private_tls_verify_ecdsa(struct TLSContext *context, unsigned int hash_type
             }
             hash_len = 64;
             break;
+        // case _intrinsic:
+        //     {
+        //         // no hash
+        //         int ecc_stat = 0;
+        //         err = ecc_verify(buffer, len, message, message_len, &ecc_stat, &key);
+        //         ecc_free(&key);
+        //         if (err)
+        //             return 0;
+        //         return ecc_stat;
+        //     }
+        //     break;
 #ifdef TLS_LEGACY_SUPPORT
         case _md5_sha1:
             hash_idx = find_hash("md5");
