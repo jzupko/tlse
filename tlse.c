@@ -1965,6 +1965,9 @@ int _private_tls_verify_rsa(struct TLSContext *context, unsigned int hash_type, 
     }
     if ((hash_idx < 0) || (err)) {
         DEBUG_PRINT("Unsupported hash type: %i\n", hash_type);
+#ifdef TLS_UNSECURE_ALLOW_UNSUPPORTED_SIGNATURES
+        return 1;
+#endif
         return TLS_GENERIC_ERROR;
     }
     int rsa_stat = 0;
@@ -2641,6 +2644,9 @@ int _private_tls_verify_ecdsa(struct TLSContext *context, unsigned int hash_type
     }
     if ((hash_idx < 0) || (err)) {
         DEBUG_PRINT("Unsupported hash type: %i\n", hash_type);
+#ifdef TLS_UNSECURE_ALLOW_UNSUPPORTED_SIGNATURES
+        return 1;
+#endif
         return TLS_GENERIC_ERROR;
     }
     int ecc_stat = 0;
