@@ -3,6 +3,22 @@
 
 // #define DEBUG
 
+extern int   tin_thirdparty_crypto_rand_bytes(void* ptr, size_t sz);
+extern void* tin_thirdparty_memhook_calloc(size_t num, size_t sz);
+extern void  tin_thirdparty_memhook_free(void* ptr);
+extern void* tin_thirdparty_memhook_malloc(size_t sz);
+extern void* tin_thirdparty_memhook_realloc(void* ptr, size_t sz);
+#define NO_SSL_COMPATIBLE_INTERFACE 1
+#define TLS_AMALGAMATION 1
+#define TLS_MALLOC(size)                tin_thirdparty_memhook_malloc(size)
+#define TLS_REALLOC(ptr, size)          tin_thirdparty_memhook_realloc((ptr), (size))
+#define TLS_FREE(ptr)                   tin_thirdparty_memhook_free(ptr)
+#define TLS_USE_RANDOM_SOURCE(key, len) tin_thirdparty_crypto_rand_bytes((key), (len))
+#define XCALLOC                         tin_thirdparty_memhook_calloc
+#define XFREE                           tin_thirdparty_memhook_free
+#define XMALLOC                         tin_thirdparty_memhook_malloc
+#define XREALLOC                        tin_thirdparty_memhook_realloc
+
 // define TLS_LEGACY_SUPPORT to support TLS 1.1/1.0 (legacy)
 // legacy support it will use an additional 272 bytes / context
 #ifndef NO_TLS_LEGACY_SUPPORT

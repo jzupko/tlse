@@ -26,6 +26,17 @@
 #ifndef TLSE_C
 #define TLSE_C
 
+#if defined(_MSC_VER)
+    /* warning C4018: '{0}': signed/unsigned mismatch */
+    /* warning C4244: '{0}': conversion from '{1}' to '{2}', possible loss of data */
+    /* warning C4267: '{0}': conversion from '{1}' to '{2}', possible loss of data */
+    /* warning C4311: '{0}': pointer truncation from '{1}' to '{2}' */
+    /* warning C4333: '{0}': right shift by too large amount, data loss */
+    /* warning C4334: '{0}': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended? */
+    /* warning C4996: '{0}': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: {1}. See online help for details. */
+    #pragma warning(disable : 4018 4244 4267 4311 4333 4334 4996)
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -47,8 +58,9 @@
 #include <errno.h>
 #endif
 
+#include "tlse.h"
 #ifdef TLS_AMALGAMATION
-#include "libtomcrypt.c"
+#include "libtomcrypt.inl"
 #else
 #include <tomcrypt.h>
 #endif
@@ -70,9 +82,8 @@
     // #include "linux/tls.h"
 #endif
 
-#include "tlse.h"
 #ifdef TLS_CURVE25519
-    #include "curve25519.c"
+    #include "curve25519.inl"
 #endif
 // using ChaCha20 implementation by D. J. Bernstein
 
@@ -4021,7 +4032,7 @@ int tls_packet_uint24(struct TLSPacket *packet, unsigned int i) {
 
 int tls_random(unsigned char *key, int len) {
 #ifdef TLS_USE_RANDOM_SOURCE
-    TLS_USE_RANDOM_SOURCE(key, len);
+    return TLS_USE_RANDOM_SOURCE(key, len);
 #else
 #ifdef __APPLE__
     for (int i = 0; i < len; i++) {
@@ -4077,7 +4088,6 @@ void _private_tls_create_hash(struct TLSContext *context) {
     
     TLSHash *hash = _private_tls_ensure_hash(context);
     if ((context->version == TLS_V12) || (context->version == DTLS_V12) || (context->version == TLS_V13) || (context->version == DTLS_V13)) {
-        int hash_size = _private_tls_mac_length(context);
         if (hash->created) {
             unsigned char temp[TLS_MAX_SHA_SIZE];
             sha384_done(&hash->hash32, temp);
@@ -5480,7 +5490,6 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
         else
             memcpy(context->local_random + TLS_SERVER_RANDOM_SIZE - 8, "DOWNGRD\x00", 8);
     }
-    unsigned short packet_version = context->version;
     unsigned short version = context->version;
 #ifdef WITH_TLS_13
     if (context->version == TLS_V13)
@@ -6786,22 +6795,18 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
     CHECK_SIZE(size_of_all_certificates, buf_len - res, TLS_NEED_MORE_DATA);
     int size = size_of_all_certificates;
     
-    int idx = 0;
     int valid_certificate = 0;
     while (size > 0) {
-        idx++;
         CHECK_SIZE(3, buf_len - res, TLS_NEED_MORE_DATA);
         unsigned int certificate_size = buf[res] * 0x10000 + buf[res + 1] * 0x100 + buf[res + 2];
         res += 3;
         CHECK_SIZE(certificate_size, buf_len - res, TLS_NEED_MORE_DATA)
         // load chain
-        int certificates_in_chain = 0;
         int res2 = res;
         unsigned int remaining = certificate_size;
         do {
             if (remaining <= 3)
                 break;
-            certificates_in_chain++;
             unsigned int certificate_size2 = buf[res2] * 0x10000 + buf[res2 + 1] * 0x100 + buf[res2 + 2];
             res2 += 3;
             remaining -= 3;

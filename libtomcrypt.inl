@@ -1,6 +1,8 @@
 #define CRYPT 0x0117
 #define LTC_NO_ROLC
 
+#define ARGTYPE 4
+
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
  * LibTomMath is a library that provides multiple-precision
@@ -18861,7 +18863,7 @@ int der_decode_printable_string(const unsigned char *in, unsigned long inlen,
 int der_decode_sequence_ex(const unsigned char *in, unsigned long inlen,
                            ltc_asn1_list *list, unsigned long outlen, int ordered) {
     int           err, type;
-    unsigned long size, x, y, z, i, blksize;
+    unsigned long size, x, y, z, i, blksize = 0;
     void          *data;
 
     LTC_ARGCHK(in != NULL);
@@ -22404,7 +22406,7 @@ int der_length_printable_string(const unsigned char *octets, unsigned long nocte
 int der_length_sequence(ltc_asn1_list *list, unsigned long inlen,
                         unsigned long *outlen) {
     int           err, type;
-    unsigned long size, x, y, z, i;
+    unsigned long size, x, y, i;
     void          *data;
 
     LTC_ARGCHK(list != NULL);
@@ -22513,7 +22515,6 @@ int der_length_sequence(ltc_asn1_list *list, unsigned long inlen,
     }
 
     /* calc header size */
-    z = y;
     if (y < 128) {
         y += 2;
     } else if (y < 256) {
@@ -28264,7 +28265,6 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
 
 /* Try the Microsoft CSP */
 #if defined(WIN32) || defined(WINCE)
- #define _WIN32_WINNT    0x0400
  #ifdef WINCE
   #define UNDER_CE
   #define ARM
