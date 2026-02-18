@@ -6,7 +6,7 @@
  License Choice 1 - The 2-Clause BSD License
  ===============================================================================
 
- Copyright (c) 2016-2025, Eduard Suica
+ Copyright (c) 2016-2026, Eduard Suica
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification,
@@ -224,8 +224,8 @@
 #define TLS_V13_MAX_IV_SIZE       12
 
 #define VERSION_SUPPORTED(version, err)  if ((version != TLS_V13) && (version != TLS_V12) && (version != TLS_V11) && (version != TLS_V10) && (version != DTLS_V13) && (version != DTLS_V12) && (version != DTLS_V10)) { if ((version == SSL_V30) && (context->connection_status == 0)) { version = TLS_V12; } else { DEBUG_PRINT("UNSUPPORTED TLS VERSION %x\n", (int)version); return err;} }
-#define CHECK_SIZE(size, buf_size, err)  if (((int)(size) > (int)(buf_size)) || ((int)(buf_size) < 0)) { DEBUG_PRINT("[EXPECTED AT LEAST %i IN BUFFER OF SIZE %i]\n", (int)(size), (int)(buf_size)); return err; }
-#define TLS_IMPORT_CHECK_SIZE(buf_pos, size, buf_size) if (((int)size > (int)buf_size - buf_pos) || ((int)buf_pos > (int)buf_size)) { DEBUG_PRINT("IMPORT ELEMENT SIZE ERROR\n"); tls_destroy_context(context); return NULL; }
+#define CHECK_SIZE(size, buf_size, err)  if ((size) > (buf_size)) { DEBUG_PRINT("[EXPECTED AT LEAST %i IN BUFFER OF SIZE %i]\n", (int)(size), (int)(buf_size)); return err; }
+#define TLS_IMPORT_CHECK_SIZE(buf_pos, size, buf_size) if (((size) > (buf_size - buf_pos)) || ((buf_pos) > (buf_size))) { DEBUG_PRINT("IMPORT ELEMENT SIZE ERROR\n"); tls_destroy_context(context); return NULL; }
 #define CHECK_HANDSHAKE_STATE(context, n, limit)  { if (context->hs_messages[n] >= limit) { if (context->dtls) { DEBUG_PRINT("* REPEATED MESSAGE, RE-HASHING\n"); _private_dtls_rehash(context, type); context->hs_messages[n]++;} else { DEBUG_PRINT("* UNEXPECTED MESSAGE (%i)\n", (int)n); payload_res = TLS_UNEXPECTED_MESSAGE; break; } } context->hs_messages[n]++; }
 #define TLS_24_BIT(buf, index, val) { unsigned int u_val = (unsigned int)val; buf[index] =  u_val / 0x10000; u_val %= 0x10000; buf[index + 1] =  u_val / 0x100; u_val %= 0x100; buf[index + 2] = u_val; }
 
@@ -7928,7 +7928,7 @@ int tls_parse_finished(struct TLSContext *context, const unsigned char *buf, int
                 }
             } else {
                 // concatenate client verify and server verify
-                context->verify_data = (unsigned char *)TLS_REALLOC(context->verify_data, size);
+                context->verify_data = (unsigned char *)TLS_REALLOC(context->verify_data, context->verify_len + size);
                 if (context->verify_data) {
                     memcpy(context->verify_data + context->verify_len, out, size);
                     context->verify_len += size;
@@ -8964,6 +8964,10 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
         if (/*(context->connection_status == 2) && */(type == TLS_APPLICATION_DATA) && (context->crypto.created)) {
             do {
                 length--;
+                if (length == 0) {
+                    /* error: no content type */
+                    break;
+                }
                 type = ptr[length];
             } while (!type);
         }
@@ -9068,6 +9072,11 @@ unsigned int asn1_get_len(const unsigned char *buffer, int buf_len, unsigned int
             coef *= 0x100;
         }
         ++*octets;
+
+        // reject lengths > a reasonable maximum (#136)
+        if (long_size > 0x00FFFFFF)
+            return 0;
+
         return long_size;
     }
     ++*octets;
@@ -10328,8 +10337,14 @@ int tls_consume_stream(struct TLSContext *context, const unsigned char *buf, int
                 unsigned int fragment_offset = buffer[6] * 0x10000 + buffer[7] * 0x100 + buffer[8];
                 unsigned int fragment_length = buffer[9] * 0x10000 + buffer[10] * 0x100 + buffer[11];
 
+		// #137
+		if (fragment_length + 12 > length - tls_header_size) {
+                    DEBUG_PRINT("INVALID FRAGMENT SIZE: %i\n", fragment_length);
+                    return TLS_BROKEN_PACKET;
+		}
+
                 if ((data_length > DTLS_MAX_FRAGMENT_SIZE) || (fragment_offset + fragment_length > data_length)) {
-                    DEBUG_PRINT("INVALID PACKET SIZE: %i, FRAGMENT OFFSET: %i, FRAGMENT LENGTH: %i\n");
+                    DEBUG_PRINT("INVALID PACKET SIZE: %i, FRAGMENT OFFSET: %i, FRAGMENT LENGTH: %i\n", data_length, fragment_offset, fragment_length);
                     return TLS_BROKEN_PACKET;
                 }
 
