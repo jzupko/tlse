@@ -1,7 +1,25 @@
 #ifndef TLSE_H
 #define TLSE_H
 
+#include <stddef.h>
+
 // #define DEBUG
+
+extern int   mmud_thirdparty_crypto_rand_bytes(void* ptr, size_t sz);
+extern void* mmud_thirdparty_memhook_calloc(size_t num, size_t sz);
+extern void  mmud_thirdparty_memhook_free(void* ptr);
+extern void* mmud_thirdparty_memhook_malloc(size_t sz);
+extern void* mmud_thirdparty_memhook_realloc(void* ptr, size_t sz);
+#define NO_SSL_COMPATIBLE_INTERFACE 1
+#define TLS_AMALGAMATION 1
+#define TLS_MALLOC(size)                mmud_thirdparty_memhook_malloc(size)
+#define TLS_REALLOC(ptr, size)          mmud_thirdparty_memhook_realloc((ptr), (size))
+#define TLS_FREE(ptr)                   mmud_thirdparty_memhook_free(ptr)
+#define TLS_USE_RANDOM_SOURCE(key, len) mmud_thirdparty_crypto_rand_bytes((key), (len))
+#define XCALLOC                         mmud_thirdparty_memhook_calloc
+#define XFREE                           mmud_thirdparty_memhook_free
+#define XMALLOC                         mmud_thirdparty_memhook_malloc
+#define XREALLOC                        mmud_thirdparty_memhook_realloc
 
 // define TLS_LEGACY_SUPPORT to support TLS 1.1/1.0 (legacy)
 // legacy support it will use an additional 272 bytes / context

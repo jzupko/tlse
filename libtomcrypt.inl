@@ -1,6 +1,8 @@
 #define CRYPT 0x0117
 #define LTC_NO_ROLC
 
+#define ARGTYPE 4
+
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
  * LibTomMath is a library that provides multiple-precision
@@ -16069,22 +16071,22 @@ typedef struct {
     int  size;
 
     /** name of curve */
-    char *name;
+    const char *name;
 
     /** The prime that defines the field the curve is in (encoded in hex) */
-    char *prime;
+    const char *prime;
 
     /** The fields B param (hex) */
-    char *B;
+    const char *B;
 
     /** The order of the curve (hex) */
-    char *order;
+    const char *order;
 
     /** The x co-ordinate of the base point on the curve (hex) */
-    char *Gx;
+    const char *Gx;
 
     /** The y co-ordinate of the base point on the curve (hex) */
-    char *Gy;
+    const char *Gy;
 } ltc_ecc_set_type;
 
 /** A point on a ECC curve, stored in Jacbobian format such that (x,y,z) => (x/z^2, y/z^3, 1) when interpretted as affine */
@@ -16134,7 +16136,7 @@ int  ecc_import_ex(const unsigned char *in, unsigned long inlen, ecc_key *key, c
 
 int ecc_ansi_x963_export(ecc_key *key, unsigned char *out, unsigned long *outlen);
 int ecc_ansi_x963_import(const unsigned char *in, unsigned long inlen, ecc_key *key);
-int ecc_ansi_x963_import_ex(const unsigned char *in, unsigned long inlen, ecc_key *key, ltc_ecc_set_type *dp);
+int ecc_ansi_x963_import_ex(const unsigned char *in, unsigned long inlen, ecc_key *key, ltc_ecc_set_type const *dp);
 
 int  ecc_shared_secret(ecc_key *private_key, ecc_key *public_key,
                        unsigned char *out, unsigned long *outlen);
@@ -18929,7 +18931,7 @@ int der_decode_printable_string(const unsigned char *in, unsigned long inlen,
 int der_decode_sequence_ex(const unsigned char *in, unsigned long inlen,
                            ltc_asn1_list *list, unsigned long outlen, int ordered) {
     int           err, type;
-    unsigned long size, x, y, z, i, blksize;
+    unsigned long size, x, y, z, i, blksize = 0;
     void          *data;
 
     LTC_ARGCHK(in != NULL);
@@ -22472,7 +22474,7 @@ int der_length_printable_string(const unsigned char *octets, unsigned long nocte
 int der_length_sequence(ltc_asn1_list *list, unsigned long inlen,
                         unsigned long *outlen) {
     int           err, type;
-    unsigned long size, x, y, z, i;
+    unsigned long size, x, y, i;
     void          *data;
 
     LTC_ARGCHK(list != NULL);
@@ -22581,7 +22583,6 @@ int der_length_sequence(ltc_asn1_list *list, unsigned long inlen,
     }
 
     /* calc header size */
-    z = y;
     if (y < 128) {
         y += 2;
     } else if (y < 256) {
@@ -23119,7 +23120,7 @@ int ecc_ansi_x963_import(const unsigned char *in, unsigned long inlen, ecc_key *
     return ecc_ansi_x963_import_ex(in, inlen, key, NULL);
 }
 
-int ecc_ansi_x963_import_ex(const unsigned char *in, unsigned long inlen, ecc_key *key, ltc_ecc_set_type *dp) {
+int ecc_ansi_x963_import_ex(const unsigned char *in, unsigned long inlen, ecc_key *key, ltc_ecc_set_type const *dp) {
     int x, err;
 
     LTC_ARGCHK(in != NULL);
@@ -28332,7 +28333,6 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
 
 /* Try the Microsoft CSP */
 #if defined(WIN32) || defined(WINCE)
- #define _WIN32_WINNT    0x0400
  #ifdef WINCE
   #define UNDER_CE
   #define ARM

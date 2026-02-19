@@ -62,6 +62,19 @@
 #ifndef TLSE_C
 #define TLSE_C
 
+#include "tlse.h"
+
+#if defined(_MSC_VER)
+    /* warning C4018: '{0}': signed/unsigned mismatch */
+    /* warning C4244: '{0}': conversion from '{1}' to '{2}', possible loss of data */
+    /* warning C4267: '{0}': conversion from '{1}' to '{2}', possible loss of data */
+    /* warning C4311: '{0}': pointer truncation from '{1}' to '{2}' */
+    /* warning C4333: '{0}': right shift by too large amount, data loss */
+    /* warning C4334: '{0}': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended? */
+    /* warning C4996: '{0}': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: {1}. See online help for details. */
+    #pragma warning(disable : 4018 4244 4267 4311 4333 4334 4996)
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -89,7 +102,7 @@
 #define TLS_I_MACRO
 #undef I
 #endif
-#include "libtomcrypt.c"
+#include "libtomcrypt.inl"
 #ifdef TLS_I_MACRO
 #pragma pop_macro("I")
 #undef TLS_I_MACRO
@@ -114,8 +127,6 @@
     // or just include tls.h instead of ktls.h
     // #include "linux/tls.h"
 #endif
-
-#include "tlse.h"
 
 #ifndef TLS_FORWARD_SECRECY
 #undef TLS_ECDSA_SUPPORTED
@@ -4342,7 +4353,7 @@ int tls_packet_uint24(struct TLSPacket *packet, unsigned int i) {
 
 int tls_random(unsigned char *key, int len) {
 #ifdef TLS_USE_RANDOM_SOURCE
-    TLS_USE_RANDOM_SOURCE(key, len);
+    return TLS_USE_RANDOM_SOURCE(key, len);
 #else
 #ifdef __APPLE__
     for (int i = 0; i < len; i++) {
@@ -4397,7 +4408,6 @@ void _private_tls_create_hash(struct TLSContext *context) {
         return;
     TLSHash *hash = _private_tls_ensure_hash(context);
     if ((context->version == TLS_V12) || (context->version == DTLS_V12) || (context->version == TLS_V13) || (context->version == DTLS_V13)) {
-        int hash_size = _private_tls_mac_length(context);
         if (hash->created) {
             unsigned char temp[TLS_MAX_SHA_SIZE];
             sha384_done(&hash->hash32, temp);
@@ -5901,7 +5911,6 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
         else
             memcpy(context->local_random + TLS_SERVER_RANDOM_SIZE - 8, "DOWNGRD\x00", 8);
     }
-    unsigned short packet_version = context->version;
     unsigned short version = context->version;
 #ifdef WITH_TLS_13
     if (context->version == TLS_V13)
@@ -7303,16 +7312,13 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
     CHECK_SIZE(size_of_all_certificates, buf_len - res, TLS_NEED_MORE_DATA);
     int size = size_of_all_certificates;
     
-    int idx = 0;
     int valid_certificate = 0;
     while (size > 0) {
-        idx++;
         CHECK_SIZE(3, buf_len - res, TLS_NEED_MORE_DATA);
         unsigned int certificate_size = buf[res] * 0x10000 + buf[res + 1] * 0x100 + buf[res + 2];
         res += 3;
         CHECK_SIZE(certificate_size, buf_len - res, TLS_NEED_MORE_DATA)
         // load chain
-        int certificates_in_chain = 0;
         int res2 = res;
         unsigned int remaining = certificate_size;
         do {
@@ -7320,7 +7326,6 @@ int tls_parse_certificate(struct TLSContext *context, const unsigned char *buf, 
             CHECK_SIZE(res2, buf_len, TLS_NEED_MORE_DATA)
             if (remaining <= 3)
                 break;
-            certificates_in_chain++;
             unsigned int certificate_size2 = buf[res2] * 0x10000 + buf[res2 + 1] * 0x100 + buf[res2 + 2];
             res2 += 3;
             remaining -= 3;
@@ -10897,11 +10902,6 @@ int tls_stun_parse(unsigned char *msg, int len, char *pwd, int pwd_len, unsigned
     if (msg_len > len - 20)
         return -1;
 
-    const unsigned char *magic_cookie = &msg[4];
-    const unsigned char *transaction_id = &msg[8];
-
-    const unsigned char *attributes = &msg[20];
-
     switch (type) {
         case 0x0001:
             break;
@@ -10926,8 +10926,6 @@ int tls_stun_parse(unsigned char *msg, int len, char *pwd, int pwd_len, unsigned
     memset(hash, 0, sizeof(hash));
     int stun_message_len = 20;
 
-    unsigned char secret[16];
-
     char key[0x4CE];
 
     unsigned char *username = NULL;
@@ -10936,14 +10934,9 @@ int tls_stun_parse(unsigned char *msg, int len, char *pwd, int pwd_len, unsigned
     unsigned char *realm = NULL;
     int realm_len = 0;
 
-    unsigned char *nonce = NULL;
-    int nonce_len = 0;
-
     char *ptr;
 
     int validated = 0;
-
-    uint32_t priority = 0;
 
     while (msg_len >= 4) {
         unsigned short attr_type = ntohs(*(unsigned short *)msg);
@@ -11040,8 +11033,6 @@ int tls_stun_parse(unsigned char *msg, int len, char *pwd, int pwd_len, unsigned
                 // NONCE
                 if (attr_len > 763)
                     return TLS_BROKEN_PACKET;
-                nonce = msg;
-                nonce_len = attr_len;
                 break;
             case 0x0020:
                 // XOR-MAPPED-ADDRESS
@@ -11052,7 +11043,6 @@ int tls_stun_parse(unsigned char *msg, int len, char *pwd, int pwd_len, unsigned
                     return TLS_BROKEN_PACKET;
                 uint32_t priority_;
                 memcpy(&priority_, msg, sizeof(priority_));
-                priority = ntohl(priority_);
                 break;
         }
 
@@ -11160,8 +11150,6 @@ int tls_stun_build(unsigned char transaction_id[12], char *username, int usernam
     msg[7] = 0x42;
 
     memcpy(msg + 8, transaction_id, 12);
-
-    unsigned char *ptr = msg + 20;
 
     int len = 20;
     if ((username) && (username_len > 0) && (username_len <= 513))  {
